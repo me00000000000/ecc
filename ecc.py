@@ -66,12 +66,11 @@ def encrypt_file(recipient_b64, infile, outfile):
             plaintext = f.read()
     else:
         plaintext = sys.stdin.buffer.read()
-    nonce = os.urandom(8)
-    ctr = Counter.new(64, prefix=nonce, initial_value=0)
-    cipher = AES.new(final_key, AES.MODE_CTR, counter=ctr)
-    ciphertext = cipher.encrypt(plaintext)
+    nonce = os.urandom(12)
+    cipher = AES.new(final_key, AES.MODE_GCM, nonce=nonce)
+    ciphertext, tag = cipher.encrypt_and_digest(plaintext)
     eph_pub_bytes = eph_vk.encode()
-    outdata = eph_pub_bytes + salt + nonce + ciphertext
+    outdata = eph_pub_bytes + salt + nonce + tag + ciphertext
     outdata_b64 = base64.b64encode(outdata).decode('ascii').rstrip("=")
     if outfile:
         with open(outfile, 'w') as f:
@@ -93,20 +92,18 @@ def decrypt_file(private_key_file, infile, outfile):
     if missing_padding:
         b64_data += '=' * (4 - missing_padding)
     data = base64.b64decode(b64_data)
-    if len(data) < 32 + 16 + 8:
-        raise ValueError("Input file corrupted")
-    if len(data) < 32 + 16 + 8:
+    if len(data) < 32 + 16 + 12 + 16:
         raise ValueError("Input file corrupted")
     eph_pub_bytes = data[:32]
     eph_vk = VerifyKey(eph_pub_bytes)
     salt = data[32:32+16]
-    nonce = data[32+16:32+16+8]
-    ciphertext = data[32+16+8:]
+    nonce = data[32+16:32+16+12]
+    tag = data[32+16+12:32+16+12+16]
+    ciphertext = data[32+16+12+16:]
     shared_key = derive_shared_key(sk, eph_vk)
     final_key = argon2id_kdf(shared_key, salt, hash_len=16)
-    ctr = Counter.new(64, prefix=nonce, initial_value=0)
-    cipher = AES.new(final_key, AES.MODE_CTR, counter=ctr)
-    plaintext = cipher.decrypt(ciphertext)
+    cipher = AES.new(final_key, AES.MODE_GCM, nonce=nonce)
+    plaintext = cipher.decrypt_and_verify(ciphertext, tag)
     if outfile:
         with open(outfile, 'wb') as f:
             f.write(plaintext)
