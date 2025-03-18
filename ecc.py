@@ -120,7 +120,7 @@ def generate_public(private_key_file):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Ed25519 key generation and ECIES-like encryption/decryption X25519 with Argon2id KDF."
+        description="X25519 encryption/decryption with Argon2id KDF"
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-g", "--generate", action="store_true")
