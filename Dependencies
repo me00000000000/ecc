@@ -1,0 +1,4 @@
+python-pycryptodome
+python-ecdsa
+python-argon2-cffi
+python-pynacl
