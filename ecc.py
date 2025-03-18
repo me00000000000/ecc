@@ -88,12 +88,15 @@ def decrypt_file(private_key_file, infile, outfile):
             b64_data = f.read()
     else:
         b64_data = sys.stdin.read()
+    b64_data = ''.join(b64_data.split())  
     missing_padding = len(b64_data) % 4
     if missing_padding:
         b64_data += '=' * (4 - missing_padding)
     data = base64.b64decode(b64_data)
     if len(data) < 32 + 16 + 8:
-        raise ValueError("Input file too short or corrupted")
+        raise ValueError("Input file corrupted")
+    if len(data) < 32 + 16 + 8:
+        raise ValueError("Input file corrupted")
     eph_pub_bytes = data[:32]
     eph_vk = VerifyKey(eph_pub_bytes)
     salt = data[32:32+16]
