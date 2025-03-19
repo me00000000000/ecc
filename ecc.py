@@ -78,6 +78,7 @@ def encrypt_file(recipient_b64, infile, outfile):
         print(f"Encryption complete. Output written to {outfile}")
     else:
         sys.stdout.write(outdata_b64)
+        print()
 
 def decrypt_file(private_key_file, infile, outfile):
     sk = load_private_key_file(private_key_file)
