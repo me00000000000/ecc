@@ -9,6 +9,9 @@
   -i, --infile: specify the input file to encrypt or decrypt
   -o, --outfile: specify the output file (applies for encrypt/decrypt/generate)
   -f, --force: overwrite output files
+
+  -s, --sign: sign input using private key file
+  -c, --check: check signature using public key
 ```
 
 ## encryption/decryption usage
