@@ -116,23 +116,95 @@ def generate_public(private_key_file):
     sk = load_private_key_file(private_key_file)
     vk = sk.verify_key
     pub_b64 = base64.b64encode(vk.encode()).decode('ascii').rstrip("=")
-    print("Exactracted public key: ", end="")
+    print("Extracted public key: ", end="")
     print(pub_b64)
+
+def sign_input(private_key_file, infile):
+    sk = load_private_key_file(private_key_file)
+    if infile:
+        with open(infile, 'rb') as f:
+            message = f.read()
+    else:
+        message = sys.stdin.buffer.read()
+    signed = sk.sign(message)
+    signature = signed.signature
+    signature_b64 = base64.b64encode(signature).decode('ascii').rstrip("=")
+    sys.stdout.buffer.write(message)
+    sys.stdout.buffer.write(b"\n")
+    sys.stdout.write(signature_b64)
+    sys.stdout.write("\n")
+
+def check_signature(pub_key, infile):
+    vk = load_public_key(pub_key)
+    if infile:
+        with open(infile, 'rb') as f:
+            data = f.read()
+    else:
+        data = sys.stdin.buffer.read()
+    data = data.rstrip(b"\n")
+    try:
+        idx = data.rindex(b"\n")
+    except ValueError:
+        print("Invalid signature")
+        sys.exit(1)
+    message = data[:idx]
+    sig_line = data[idx+1:].strip()
+    try:
+        sig_b64 = sig_line.decode('ascii')
+    except UnicodeDecodeError:
+        print("Invalid signature")
+        sys.exit(1)
+    missing_padding = len(sig_b64) % 4
+    if missing_padding:
+        sig_b64 += '=' * (4 - missing_padding)
+    try:
+        signature = base64.b64decode(sig_b64)
+    except Exception:
+        print("Invalid signature")
+        sys.exit(1)
+    try:
+        vk.verify(message, signature)
+        print("Valid signature")
+    except Exception:
+        print("Invalid signature")
+        sys.exit(1)
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description="X25519 encryption/decryption with Argon2id KDF"
+        description="X25519 encryption/decryption with Argon2id KDF and digital signing/verification"
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-g", "--generate", action="store_true")
-    group.add_argument("-r", "--recipient", type=str)
-    group.add_argument("-k", "--private", type=str)
-    group.add_argument("-p", "--public", type=str)
-    parser.add_argument("-i", "--infile", type=str)
-    parser.add_argument("-o", "--outfile", type=str)
-    parser.add_argument("-f", "--force", action="store_true")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-g", "--generate", action="store_true",
+                       help="Generate a new key pair")
+    group.add_argument("-r", "--recipient", type=str,
+                       help="Encrypt input for recipient (public key in base64)")
+    group.add_argument("-k", "--private", type=str,
+                       help="Decrypt input using private key file")
+    group.add_argument("-p", "--public", type=str,
+                       help="Extract public key from private key file")
+    parser.add_argument("-s", "--sign", type=str,
+                        help="Sign input using private key file")
+    parser.add_argument("-c", "--check", type=str,
+                        help="Check signature using public key (base64)")
+
+    parser.add_argument("-i", "--infile", type=str,
+                        help="Input file (if not provided, STDIN is used)")
+    parser.add_argument("-o", "--outfile", type=str,
+                        help="Output file (if not provided, STDOUT is used)")
+    parser.add_argument("-f", "--force", action="store_true",
+                        help="Force overwrite of output file (if applicable)")
     args = parser.parse_args()
-    if args.generate:
+
+    mode_count = sum(bool(x) for x in [args.generate, args.recipient, args.private, args.public, args.sign, args.check])
+    if mode_count != 1:
+        parser.error("Please specify exactly one mode: generate (-g), encrypt (-r), decrypt (-k), extract public (-p), sign (-s), or check (-c).")
+
+    if args.sign:
+        sign_input(args.sign, args.infile)
+    elif args.check:
+        check_signature(args.check, args.infile)
+    elif args.generate:
         if not args.outfile:
             args.outfile = False
         if not args.force and args.outfile != False:
