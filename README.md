@@ -11,7 +11,7 @@
   -f, --force: overwrite output files
 ```
 
-example usage
+## encryption/decryption usage
 
 ```
 $ ecc -g
@@ -44,3 +44,25 @@ RVJ7WBHCxTeiI1KXssVM3frNd4aOMk1vYxBljas6ZYuM1N/Q+b80WpC6kSCEU/Vy/2GC2czT412VxHBT
 $ ecc -i encrypted -k 1htSxV83XGp.priv 
 file contents
 ```
+
+## signing usage
+
+sign a message with -s (sign)
+
+```
+$ echo 'Important announcement' | ecc -s 1htSxV83XGp.priv
+Important announcement
+
+v2LVRoXZh057FXtqy5SikPPoCMYibQZUN1aPtXSgFWAgYeW+y7ZniN23oBs5FaKoeL6/qSA31sRHaTFyB/0kDw
+```
+
+verify a signature with -c (check)
+
+```
+$ echo 'Important announcement
+
+v2LVRoXZh057FXtqy5SikPPoCMYibQZUN1aPtXSgFWAgYeW+y7ZniN23oBs5FaKoeL6/qSA31sRHaTFyB/0kDw' | ecc -c 1htSxV83XGpDfjs9V4EUvHrhpydfjj8Gggi92Pta7i4
+Valid signature
+```
+
+<sub>CC BY-SA 4.0</sub>
